@@ -19,14 +19,14 @@ class MockNextRequest {
 }
 
 // Mock URL constructor for search params
-global.URL = class MockURL {
-  searchParams: URLSearchParams
+// global.URL = class MockURL {
+//   searchParams: URLSearchParams
   
-  constructor(url: string) {
-    const [baseUrl, search] = url.split('?')
-    this.searchParams = new URLSearchParams(search || '')
-  }
-} as any
+//   constructor(url: string) {
+//     const [baseUrl, search] = url.split('?')
+//     this.searchParams = new URLSearchParams(search || '')
+//   }
+// } as any
 
 describe('/api/polls Integration Tests', () => {
   let mockSupabase: any
