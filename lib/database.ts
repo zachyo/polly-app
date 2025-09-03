@@ -1,42 +1,5 @@
 import { createClient } from './supabase/client'
-import { createClient as createServerClient } from './supabase/server'
-
-export interface Poll {
-  id: string
-  title: string
-  description?: string
-  options: string[]
-  created_at: string
-  updated_at: string
-  user_id: string
-  is_active: boolean
-}
-
-export interface Vote {
-  id: string
-  poll_id: string
-  option_index: number
-  voter_ip?: string
-  voter_id?: string
-  created_at: string
-}
-
-export interface PollWithResults extends Poll {
-  vote_counts: { [key: string]: number }
-  total_votes: number
-}
-
-export interface CreatePollData {
-  title: string
-  description?: string
-  options: string[]
-}
-
-export interface VoteData {
-  poll_id: string
-  option_index: number
-  voter_ip?: string
-}
+import { Poll, Vote, PollWithResults, CreatePollData, VoteData } from './types'
 
 // Client-side functions
 export const pollsApi = {
@@ -197,21 +160,3 @@ export const pollsApi = {
   }
 }
 
-// Server-side functions (for API routes)
-export const serverPollsApi = {
-  // Get poll by ID (server-side)
-  async getPollById(id: string): Promise<Poll | null> {
-    const supabase = await createServerClient()
-    const { data, error } = await supabase
-      .from('polls')
-      .select('*')
-      .eq('id', id)
-      .single()
-
-    if (error) {
-      if (error.code === 'PGRST116') return null
-      throw error
-    }
-    return data
-  }
-}

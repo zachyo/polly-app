@@ -12,7 +12,8 @@ import {
   CardTitle,
 } from "@/components/ui/card";
 import Link from "next/link";
-import { pollsApi, type Poll } from "@/lib/database";
+import { pollsApi } from "@/lib/database";
+import { Poll } from "@/lib/types";
 import { useAuth } from "@/lib/auth-context";
 
 export default function PollsPage() {
