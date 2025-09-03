@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useCallback, useMemo } from "react";
+import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { useForm, useFieldArray } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
@@ -25,11 +25,7 @@ import {
   FormMessage,
 } from "@/components/ui/form";
 import { useAuth } from "@/lib/auth-context";
-import { CreatePollData } from "@/lib/types";
-
-// Constants
-const MIN_OPTIONS = 2;
-const MAX_OPTIONS = 10;
+import { PollFormData } from "@/lib/types";
 
 // Zod validation schema
 const pollFormSchema = z.object({
@@ -42,9 +38,11 @@ const pollFormSchema = z.object({
     .max(500, "Description must be less than 500 characters")
     .optional(),
   options: z
-    .array(z.string().min(1, "Option cannot be empty"))
-    .min(MIN_OPTIONS, `At least ${MIN_OPTIONS} options are required`)
-    .max(MAX_OPTIONS, `Maximum ${MAX_OPTIONS} options allowed`),
+    .array(
+      z.string().min(1, "Option cannot be empty")
+    )
+    .min(2, "At least 2 options are required")
+    .max(10, "Maximum 10 options allowed"),
 });
 
 type PollFormValues = z.infer<typeof pollFormSchema>;
@@ -53,9 +51,24 @@ export default function NewPollPage() {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
   const router = useRouter();
-  const { user, loading: authLoading } = useAuth();
+  const { user } = useAuth();
 
-  // Form configuration
+  // Redirect if not authenticated
+  useEffect(() => {
+    if (!user) {
+      router.push("/auth");
+    }
+  }, [user, router]);
+
+  // Show loading while checking authentication
+  if (!user) {
+    return (
+      <div className="flex items-center justify-center min-h-screen bg-gray-100 dark:bg-gray-900 p-4">
+        <div className="text-center">Checking authentication...</div>
+      </div>
+    );
+  }
+
   const form = useForm<PollFormValues>({
     resolver: zodResolver(pollFormSchema),
     defaultValues: {
@@ -65,45 +78,41 @@ export default function NewPollPage() {
     },
   });
 
-  // @ts-ignore - TypeScript issue with useFieldArray name inference in react-hook-form
   const { fields, append, remove } = useFieldArray({
     control: form.control,
     name: "options",
   });
 
-  // Memoized values for performance
-  const canAddOption = useMemo(() => fields.length < MAX_OPTIONS, [fields.length]);
-  const canRemoveOption = useMemo(() => fields.length > MIN_OPTIONS, [fields.length]);
+  const addOption = () => {
+    if (fields.length < 10) {
+      append("");
+    }
+  };
 
-  // Event handlers with useCallback for performance
-  const addOption = useCallback(() => {
-    if (canAddOption) append("");
-  }, [append, canAddOption]);
+  const removeOption = (index: number) => {
+    if (fields.length > 2) {
+      remove(index);
+    }
+  };
 
-  const removeOption = useCallback((index: number) => {
-    if (canRemoveOption) remove(index);
-  }, [remove, canRemoveOption]);
-
-  const onSubmit = useCallback(async (values: PollFormValues) => {
+  const onSubmit = async (values: PollFormValues) => {
     setLoading(true);
     setError("");
 
     try {
-      // Filter out empty options and trim whitespace
-      const validOptions = values.options
-        .map(option => option.trim())
-        .filter(option => option !== "");
-
-      const pollData: CreatePollData = {
-        title: values.title.trim(),
-        description: values.description?.trim() || undefined,
-        options: validOptions,
-      };
-
+      // Filter out empty options
+      const validOptions = values.options.filter(option => option.trim() !== "");
+      
       const response = await fetch("/api/polls", {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(pollData),
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          title: values.title.trim(),
+          description: values.description?.trim() || undefined,
+          options: validOptions,
+        }),
       });
 
       if (!response.ok) {
@@ -113,31 +122,12 @@ export default function NewPollPage() {
 
       const { poll } = await response.json();
       router.push(`/polls/${poll.id}`);
-    } catch (err) {
-      const errorMessage = err instanceof Error ? err.message : "An unexpected error occurred";
-      setError(errorMessage);
+    } catch (err: any) {
+      setError(err.message);
     } finally {
       setLoading(false);
     }
-  }, [router]);
-
-  // Handle authentication states
-  if (authLoading) {
-    return (
-      <div className="flex items-center justify-center min-h-screen bg-gray-100 dark:bg-gray-900 p-4">
-        <div className="text-center">Checking authentication...</div>
-      </div>
-    );
-  }
-
-  if (!user) {
-    router.push("/auth");
-    return (
-      <div className="flex items-center justify-center min-h-screen bg-gray-100 dark:bg-gray-900 p-4">
-        <div className="text-center">Redirecting to login...</div>
-      </div>
-    );
-  }
+  };
 
   return (
     <div className="flex items-center justify-center min-h-screen bg-gray-100 dark:bg-gray-900 p-4">
@@ -148,7 +138,6 @@ export default function NewPollPage() {
             Fill in the details below to create your poll.
           </CardDescription>
         </CardHeader>
-        
         <Form {...form}>
           <form onSubmit={form.handleSubmit(onSubmit)}>
             <CardContent className="space-y-6">
@@ -165,7 +154,10 @@ export default function NewPollPage() {
                   <FormItem>
                     <FormLabel>Poll Title *</FormLabel>
                     <FormControl>
-                      <Input placeholder="What's your favorite color?" {...field} />
+                      <Input
+                        placeholder="What's your favorite color?"
+                        {...field}
+                      />
                     </FormControl>
                     <FormDescription>
                       Enter a clear and engaging title for your poll (3-200 characters).
@@ -182,7 +174,10 @@ export default function NewPollPage() {
                   <FormItem>
                     <FormLabel>Description (optional)</FormLabel>
                     <FormControl>
-                      <Input placeholder="Add more context to your poll..." {...field} />
+                      <Input
+                        placeholder="Add more context to your poll..."
+                        {...field}
+                      />
                     </FormControl>
                     <FormDescription>
                       Provide additional context or instructions for your poll (max 500 characters).
@@ -195,10 +190,9 @@ export default function NewPollPage() {
               <div className="space-y-4">
                 <FormLabel>Poll Options *</FormLabel>
                 <FormDescription>
-                  Add between {MIN_OPTIONS} and {MAX_OPTIONS} options for your poll.
+                  Add between 2 and 10 options for your poll.
                 </FormDescription>
-                
-                {fields.map((field: any, index: number) => (
+                {fields.map((field, index) => (
                   <FormField
                     key={field.id}
                     control={form.control}
@@ -207,9 +201,12 @@ export default function NewPollPage() {
                       <FormItem>
                         <div className="flex items-center gap-2">
                           <FormControl>
-                            <Input placeholder={`Option ${index + 1}`} {...field} />
+                            <Input
+                              placeholder={`Option ${index + 1}`}
+                              {...field}
+                            />
                           </FormControl>
-                          {canRemoveOption && (
+                          {fields.length > 2 && (
                             <Button
                               type="button"
                               variant="destructive"
@@ -225,18 +222,16 @@ export default function NewPollPage() {
                     )}
                   />
                 ))}
-                
                 <Button
                   type="button"
                   variant="outline"
                   onClick={addOption}
-                  disabled={!canAddOption}
+                  disabled={fields.length >= 10}
                 >
-                  Add Option {!canAddOption && `(Max ${MAX_OPTIONS})`}
+                  Add Option {fields.length >= 10 && "(Max 10)"}
                 </Button>
               </div>
             </CardContent>
-            
             <CardFooter>
               <Button type="submit" className="w-full" disabled={loading}>
                 {loading ? "Creating Poll..." : "Create Poll"}

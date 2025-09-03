@@ -10,6 +10,7 @@ import {
   CardHeader,
   CardTitle,
 } from "@/components/ui/card";
+// Error here
 import { pollsApi, type PollWithResults } from "@/lib/database";
 import { useAuth } from "@/lib/auth-context";
 import { PollResultsChart } from "@/components/poll-results-chart";
@@ -32,7 +33,7 @@ export default function PollPage() {
       try {
         setLoading(true);
         const pollData = await pollsApi.getPollWithResults(pollId);
-        
+
         if (!pollData) {
           setError("Poll not found");
           return;
@@ -66,7 +67,7 @@ export default function PollPage() {
       });
 
       setHasVoted(true);
-      
+
       // Refresh poll data to show updated results
       const updatedPoll = await pollsApi.getPollWithResults(pollId);
       if (updatedPoll) {
@@ -104,9 +105,7 @@ export default function PollPage() {
         <Card>
           <CardContent className="text-center py-8">
             <p className="text-red-500 mb-4">{error || "Poll not found"}</p>
-            <Button onClick={() => router.push("/polls")}>
-              Back to Polls
-            </Button>
+            <Button onClick={() => router.push("/polls")}>Back to Polls</Button>
           </CardContent>
         </Card>
       </div>
@@ -131,12 +130,14 @@ export default function PollPage() {
               )}
             </div>
             <div className="text-right">
-              <span className={`text-xs px-2 py-1 rounded ${
-                poll.is_active 
-                  ? 'bg-green-100 text-green-800' 
-                  : 'bg-gray-100 text-gray-800'
-              }`}>
-                {poll.is_active ? 'Active' : 'Inactive'}
+              <span
+                className={`text-xs px-2 py-1 rounded ${
+                  poll.is_active
+                    ? "bg-green-100 text-green-800"
+                    : "bg-gray-100 text-gray-800"
+                }`}
+              >
+                {poll.is_active ? "Active" : "Inactive"}
               </span>
               {isOwner && (
                 <p className="text-xs text-gray-500 mt-1">You own this poll</p>
@@ -144,7 +145,7 @@ export default function PollPage() {
             </div>
           </div>
         </CardHeader>
-        
+
         <CardContent className="space-y-4">
           {error && (
             <div className="bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded">
@@ -155,12 +156,12 @@ export default function PollPage() {
           <div className="text-sm text-gray-600 mb-4">
             Total votes: {poll.total_votes}
           </div>
-
+          {/* error here */}
           <div className="space-y-3">
             {poll.options.map((option, index) => {
               const voteCount = getVoteCount(index);
               const percentage = getVotePercentage(index);
-              
+
               return (
                 <div key={index} className="space-y-2">
                   {canVote ? (
@@ -214,7 +215,10 @@ export default function PollPage() {
               Back to Polls
             </Button>
             {isOwner && (
-              <Button variant="outline" onClick={() => router.push(`/polls/${pollId}/share`)}>
+              <Button
+                variant="outline"
+                onClick={() => router.push(`/polls/${pollId}/share`)}
+              >
                 Share Poll
               </Button>
             )}
