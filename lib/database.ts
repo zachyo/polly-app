@@ -1,6 +1,8 @@
 import { createClient } from './supabase/client'
 import { Poll, Vote, PollWithResults, CreatePollData, VoteData } from './types'
 
+export * from './types';
+
 // Client-side functions
 export const pollsApi = {
   // Get all active polls

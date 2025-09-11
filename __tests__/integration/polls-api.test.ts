@@ -34,29 +34,27 @@ describe('/api/polls Integration Tests', () => {
   beforeEach(() => {
     jest.clearAllMocks()
     
-    // Create a proper query chain mock
-    const queryChain = {
+    mockSupabase = {
       from: jest.fn().mockReturnThis(),
       select: jest.fn().mockReturnThis(),
       insert: jest.fn().mockReturnThis(),
       eq: jest.fn().mockReturnThis(),
       order: jest.fn().mockReturnThis(),
-      single: jest.fn()
-    }
-    
-    mockSupabase = {
-      ...queryChain,
+      single: jest.fn(),
       auth: {
         getUser: jest.fn()
       }
     }
     
-    // Make sure all chain methods return the same object
-    Object.keys(queryChain).forEach(key => {
-      if (key !== 'single') {
-        mockSupabase[key].mockReturnValue(mockSupabase)
+    // Make the mock thenable
+    mockSupabase.then = (resolve: any, reject: any) => {
+      if (mockSupabase.mockError) {
+        return Promise.reject(mockSupabase.mockError).catch(reject)
       }
-    })
+      return Promise.resolve({ data: mockSupabase.mockData, error: null }).then(resolve)
+    }
+    
+    mockSupabase.single.mockImplementation(() => mockSupabase)
     
     mockCreateClient.mockResolvedValue(mockSupabase)
   })
@@ -80,7 +78,7 @@ describe('/api/polls Integration Tests', () => {
       }
 
       mockSupabase.auth.getUser.mockResolvedValue({ data: { user: mockUser }, error: null })
-      mockSupabase.single.mockResolvedValue({ data: mockCreatedPoll, error: null })
+      mockSupabase.mockData = mockCreatedPoll
 
       const request = new MockNextRequest('http://localhost:3000/api/polls', {
         method: 'POST',
@@ -175,7 +173,7 @@ describe('/api/polls Integration Tests', () => {
       const dbError = new Error('Database connection failed')
 
       mockSupabase.auth.getUser.mockResolvedValue({ data: { user: mockUser }, error: null })
-      mockSupabase.single.mockResolvedValue({ data: null, error: dbError })
+      mockSupabase.mockError = dbError
 
       const request = new MockNextRequest('http://localhost:3000/api/polls', {
         method: 'POST',
@@ -212,7 +210,7 @@ describe('/api/polls Integration Tests', () => {
         }
       ]
 
-      mockSupabase.order.mockResolvedValue({ data: mockPolls, error: null })
+      mockSupabase.mockData = mockPolls
 
       const request = new MockNextRequest('http://localhost:3000/api/polls')
 
@@ -245,7 +243,7 @@ describe('/api/polls Integration Tests', () => {
     it('should return 500 when database query fails', async () => {
       // Arrange
       const dbError = new Error('Database connection failed')
-      mockSupabase.order.mockResolvedValue({ data: null, error: dbError })
+      mockSupabase.mockError = dbError
 
       const request = new MockNextRequest('http://localhost:3000/api/polls')
 
