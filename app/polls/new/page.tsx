@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useCallback, useMemo } from "react";
+import { useState, useCallback, useMemo, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { useForm, useFieldArray } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
@@ -65,8 +65,7 @@ export default function NewPollPage() {
     },
   });
 
-  // @ts-ignore - TypeScript issue with useFieldArray name inference in react-hook-form
-  const { fields, append, remove } = useFieldArray({
+  const { fields, append, remove } = useFieldArray<PollFormValues, "options">({
     control: form.control,
     name: "options",
   });
@@ -90,16 +89,24 @@ export default function NewPollPage() {
 
     try {
       // Filter out empty options and trim whitespace
+      // Filter out empty options and trim whitespace
       const validOptions = values.options
         .map(option => option.trim())
         .filter(option => option !== "");
+
+      // Check for duplicate options
+      const uniqueOptions = new Set(validOptions);
+      if (uniqueOptions.size !== validOptions.length) {
+        setError("Poll options must be unique");
+        setLoading(false);
+        return;
+      }
 
       const pollData: CreatePollData = {
         title: values.title.trim(),
         description: values.description?.trim() || undefined,
         options: validOptions,
       };
-
       const response = await fetch("/api/polls", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
@@ -121,20 +128,20 @@ export default function NewPollPage() {
     }
   }, [router]);
 
-  // Handle authentication states
-  if (authLoading) {
-    return (
-      <div className="flex items-center justify-center min-h-screen bg-gray-100 dark:bg-gray-900 p-4">
-        <div className="text-center">Checking authentication...</div>
-      </div>
-    );
-  }
+  useEffect(() => {
+    // Redirect if not loading and no user is authenticated
+    if (!authLoading && !user) {
+      router.push("/auth");
+    }
+  }, [user, authLoading, router]);
 
-  if (!user) {
-    router.push("/auth");
+  // Handle authentication states: loading or redirecting
+  if (authLoading || !user) {
     return (
       <div className="flex items-center justify-center min-h-screen bg-gray-100 dark:bg-gray-900 p-4">
-        <div className="text-center">Redirecting to login...</div>
+        <div className="text-center">
+          {authLoading ? "Checking authentication..." : "Redirecting to login..."}
+        </div>
       </div>
     );
   }
@@ -198,7 +205,7 @@ export default function NewPollPage() {
                   Add between {MIN_OPTIONS} and {MAX_OPTIONS} options for your poll.
                 </FormDescription>
                 
-                {fields.map((field: any, index: number) => (
+                {fields.map((field, index) => (
                   <FormField
                     key={field.id}
                     control={form.control}

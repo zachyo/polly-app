@@ -53,6 +53,43 @@ export default function NewPollPage() {
   const router = useRouter();
   const { user } = useAuth();
 
+  const { user, isLoading } = useAuth();
+
+  // Redirect if not authenticated
+  useEffect(() => {
+    if (!isLoading && !user) {
+      router.push("/auth");
+    }
+  }, [user, isLoading, router]);
+
+  // Show loading while checking authentication
+  if (!user) {
+    return (
+      <div className="flex items-center justify-center min-h-screen bg-gray-100 dark:bg-gray-900 p-4">
+        <div className="text-center">Checking authentication...</div>
+      </div>
+    );
+  }
+
+export default function NewPollPage() {
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState("");
+  const router = useRouter();
+  const { user } = useAuth();
+  const form = useForm<PollFormValues>({
+    resolver: zodResolver(pollFormSchema),
+    defaultValues: {
+      title: "",
+      description: "",
+      options: ["", ""],
+    },
+  });
+
+  const { fields, append, remove } = useFieldArray({
+    control: form.control,
+    name: "options",
+  });
+
   // Redirect if not authenticated
   useEffect(() => {
     if (!user) {
@@ -69,14 +106,8 @@ export default function NewPollPage() {
     );
   }
 
-  const form = useForm<PollFormValues>({
-    resolver: zodResolver(pollFormSchema),
-    defaultValues: {
-      title: "",
-      description: "",
-      options: ["", ""],
-    },
-  });
+  // ...rest of component
+}
 
   const { fields, append, remove } = useFieldArray({
     control: form.control,
@@ -87,8 +118,13 @@ export default function NewPollPage() {
     if (fields.length < 10) {
       append("");
     }
-  };
-
+    } catch (err) {
+      if (err instanceof Error) {
+        setError(err.message);
+      } else {
+        setError("An unexpected error occurred");
+      }
+    }
   const removeOption = (index: number) => {
     if (fields.length > 2) {
       remove(index);
@@ -102,6 +138,11 @@ export default function NewPollPage() {
     try {
       // Filter out empty options
       const validOptions = values.options.filter(option => option.trim() !== "");
+      
+      // Validate that we have at least 2 non-empty options
+      if (validOptions.length < 2) {
+        throw new Error("At least 2 non-empty options are required");
+      }
       
       const response = await fetch("/api/polls", {
         method: "POST",

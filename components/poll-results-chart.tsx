@@ -37,8 +37,7 @@ type ChartData = {
   percentage: number;
 };
 
-// @ts-ignore
-const CustomTooltip = ({ active, payload }: TooltipProps<number, string>) => {
+const CustomTooltip: React.FC<TooltipProps<number, string>> = ({ active, payload }) => {
   if (active && payload && payload.length) {
     const data = payload[0].payload as ChartData;
     return (
@@ -153,8 +152,10 @@ export function PollResultsChart({ poll }: PollResultsChartProps) {
                   cx="50%"
                   cy="50%"
                   labelLine={false}
-                  // @ts-ignore
-                  label={({ name, percentage }: ChartData) => `${name}: ${percentage}%`}
+                  label={(data: any) => {
+                    const chartData = data as ChartData;
+                    return `${chartData.name}: ${chartData.percentage}%`;
+                  }}
                   outerRadius={80}
                   fill="#8884d8"
                   dataKey="votes"
