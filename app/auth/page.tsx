@@ -22,12 +22,14 @@ export default function AuthPage() {
   const [password, setPassword] = useState("");
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
+  const [message, setMessage] = useState("");
   const router = useRouter();
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setLoading(true);
     setError("");
+    setMessage("");
 
     const supabase = createClient();
 
@@ -38,16 +40,19 @@ export default function AuthPage() {
           password,
         });
         if (error) throw error;
+        router.push("/polls");
+        router.refresh();
       } else {
         const { error } = await supabase.auth.signUp({
           email,
           password,
         });
         if (error) throw error;
+        setMessage(
+          "Sign up successful! Please check your email for a confirmation link."
+        );
+        setIsLogin(true);
       }
-
-      router.push("/polls");
-      router.refresh();
     } catch (error: any) {
       setError(error.message);
     } finally {
@@ -72,6 +77,11 @@ export default function AuthPage() {
           <CardContent className="grid gap-4">
             {error && (
               <div className="text-red-500 text-sm text-center">{error}</div>
+            )}
+            {message && (
+              <div className="text-green-500 text-sm text-center">
+                {message}
+              </div>
             )}
             <div className="grid gap-2">
               <Label htmlFor="email">Email</Label>
