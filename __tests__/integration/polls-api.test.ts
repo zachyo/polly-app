@@ -28,12 +28,31 @@ class MockNextRequest {
 //   }
 // } as any
 
+import { SupabaseClient } from '@supabase/supabase-js';
+import { POST, GET } from '@/app/api/polls/route';
+import { createClient } from '@/lib/supabase/server';
+
+// Mock the Supabase server client
+jest.mock('@/lib/supabase/server');
+const mockCreateClient = createClient as jest.MockedFunction<typeof createClient>;
+
+// Mock NextRequest
+class MockNextRequest {
+  constructor(public url: string, public init: RequestInit = {}) {}
+
+  async json() {
+    return JSON.parse(this.init.body as string || '{}');
+  }
+}
+
+type MockSupabase = Partial<jest.Mocked<SupabaseClient>>;
+
 describe('/api/polls Integration Tests', () => {
-  let mockSupabase: any
+  let mockSupabase: MockSupabase;
 
   beforeEach(() => {
-    jest.clearAllMocks()
-    
+    jest.clearAllMocks();
+
     mockSupabase = {
       from: jest.fn().mockReturnThis(),
       select: jest.fn().mockReturnThis(),
@@ -42,22 +61,32 @@ describe('/api/polls Integration Tests', () => {
       order: jest.fn().mockReturnThis(),
       single: jest.fn(),
       auth: {
-        getUser: jest.fn()
-      }
-    }
-    
-    // Make the mock thenable
-    mockSupabase.then = (resolve: any, reject: any) => {
-      if (mockSupabase.mockError) {
-        return Promise.reject(mockSupabase.mockError).catch(reject)
-      }
-      return Promise.resolve({ data: mockSupabase.mockData, error: null }).then(resolve)
-    }
-    
-    mockSupabase.single.mockImplementation(() => mockSupabase)
-    
-    mockCreateClient.mockResolvedValue(mockSupabase)
-  })
+        getUser: jest.fn(),
+      } as any,
+    };
+
+    (mockSupabase.from as jest.Mock).mockImplementation(() => {
+      const chain = {
+        select: jest.fn().mockReturnThis(),
+        insert: jest.fn().mockReturnThis(),
+        eq: jest.fn().mockReturnThis(),
+        order: jest.fn().mockReturnThis(),
+        single: jest.fn().mockResolvedValue({
+          data: (mockSupabase as any).mockData,
+          error: (mockSupabase as any).mockError,
+        }),
+        then: (resolve: (value: any) => void, reject: (reason: any) => void) => {
+          if ((mockSupabase as any).mockError) {
+            return Promise.reject((mockSupabase as any).mockError).catch(reject);
+          }
+          return Promise.resolve({ data: (mockSupabase as any).mockData, error: null }).then(resolve);
+        },
+      };
+      return chain;
+    });
+
+    mockCreateClient.mockResolvedValue(mockSupabase as SupabaseClient);
+  });
 
   describe('POST /api/polls', () => {
     it('should create a poll successfully with valid data and authentication', async () => {

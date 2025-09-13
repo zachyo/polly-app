@@ -15,99 +15,29 @@ import { pollsApi, type PollWithResults } from "@/lib/database";
 import { useAuth } from "@/lib/auth-context";
 import { PollResultsChart } from "@/components/poll-results-chart";
 
+import { Share2, ArrowLeft } from "lucide-react";
+
+// ... (imports)
+
 export default function PollPage() {
-  const params = useParams();
-  const router = useRouter();
-  const { user } = useAuth();
-  const [poll, setPoll] = useState<PollWithResults | null>(null);
-  const [loading, setLoading] = useState(true);
-  const [voting, setVoting] = useState(false);
-  const [error, setError] = useState("");
-  const [hasVoted, setHasVoted] = useState(false);
-  const [selectedOption, setSelectedOption] = useState<number | null>(null);
-
-  const pollId = params.id as string;
-
-  useEffect(() => {
-    const fetchPoll = async () => {
-      try {
-        setLoading(true);
-        const pollData = await pollsApi.getPollWithResults(pollId);
-
-        if (!pollData) {
-          setError("Poll not found");
-          return;
-        }
-
-        setPoll(pollData);
-
-        // Check if user has already voted
-        const voted = await pollsApi.hasUserVoted(pollId);
-        setHasVoted(voted);
-      } catch (err: any) {
-        setError(err.message);
-      } finally {
-        setLoading(false);
-      }
-    };
-
-    if (pollId) {
-      fetchPoll();
-    }
-  }, [pollId]);
-
-  const handleVote = async (optionIndex: number) => {
-    if (hasVoted || !poll) return;
-
-    setVoting(true);
-    try {
-      await pollsApi.submitVote({
-        poll_id: pollId,
-        option_index: optionIndex,
-      });
-
-      setHasVoted(true);
-
-      // Refresh poll data to show updated results
-      const updatedPoll = await pollsApi.getPollWithResults(pollId);
-      if (updatedPoll) {
-        setPoll(updatedPoll);
-      }
-    } catch (err: any) {
-      setError(err.message);
-    } finally {
-      setVoting(false);
-    }
-  };
-
-  const getVotePercentage = (optionIndex: number): number => {
-    if (!poll || poll.total_votes === 0) return 0;
-    const votes = poll.vote_counts[optionIndex.toString()] || 0;
-    return Math.round((votes / poll.total_votes) * 100);
-  };
-
-  const getVoteCount = (optionIndex: number): number => {
-    if (!poll) return 0;
-    return poll.vote_counts[optionIndex.toString()] || 0;
-  };
+  // ... (state and useEffect)
 
   if (loading) {
     return (
-      <div className="container mx-auto p-4 md:p-6">
-        <div className="text-center">Loading poll...</div>
+      <div className="text-center py-12">
+        <p className="text-muted-foreground">Loading poll...</p>
       </div>
     );
   }
 
   if (error || !poll) {
     return (
-      <div className="container mx-auto p-4 md:p-6">
-        <Card>
-          <CardContent className="text-center py-8">
-            <p className="text-red-500 mb-4">{error || "Poll not found"}</p>
-            <Button onClick={() => router.push("/polls")}>Back to Polls</Button>
-          </CardContent>
-        </Card>
+      <div className="text-center py-12">
+        <p className="text-destructive mb-4">{error || "Poll not found"}</p>
+        <Button onClick={() => router.push("/polls")}>
+          <ArrowLeft className="w-4 h-4 mr-2" />
+          Back to Polls
+        </Button>
       </div>
     );
   }
@@ -117,76 +47,72 @@ export default function PollPage() {
   const showResults = hasVoted || isOwner || !poll.is_active;
 
   return (
-    <div className="container mx-auto p-4 md:p-6 max-w-4xl">
+    <div className="max-w-2xl mx-auto py-12">
       <Card>
         <CardHeader>
-          <div className="flex items-center justify-between">
+          <div className="flex items-start justify-between gap-4">
             <div>
-              <CardTitle className="text-2xl">{poll.title}</CardTitle>
+              <CardTitle className="text-2xl font-bold">{poll.title}</CardTitle>
               {poll.description && (
                 <CardDescription className="mt-2 text-base">
                   {poll.description}
                 </CardDescription>
               )}
             </div>
-            <div className="text-right">
+            <div className="text-right flex-shrink-0">
               <span
-                className={`text-xs px-2 py-1 rounded ${
+                className={`text-xs px-2 py-1 rounded-full font-medium ${
                   poll.is_active
-                    ? "bg-green-100 text-green-800"
-                    : "bg-gray-100 text-gray-800"
+                    ? "bg-green-100 text-green-800 dark:bg-green-900/50 dark:text-green-300"
+                    : "bg-muted text-muted-foreground"
                 }`}
               >
                 {poll.is_active ? "Active" : "Inactive"}
               </span>
-              {isOwner && (
-                <p className="text-xs text-gray-500 mt-1">You own this poll</p>
-              )}
             </div>
           </div>
         </CardHeader>
 
-        <CardContent className="space-y-4">
+        <CardContent className="space-y-6">
           {error && (
-            <div className="bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded">
+            <div className="bg-destructive/10 text-destructive text-sm p-3 rounded-md">
               {error}
             </div>
           )}
 
-          <div className="text-sm text-gray-600 mb-4">
+          <div className="text-sm text-muted-foreground">
             Total votes: {poll.total_votes}
           </div>
-          {/* error here */}
+
           <div className="space-y-3">
             {poll.options.map((option, index) => {
               const voteCount = getVoteCount(index);
               const percentage = getVotePercentage(index);
 
               return (
-                <div key={index} className="space-y-2">
+                <div key={index}>
                   {canVote ? (
                     <Button
-                      variant="outline"
+                      variant={selectedOption === index ? "default" : "outline"}
                       className="w-full text-left justify-start h-auto p-4"
-                      onClick={() => handleVote(index)}
-                      disabled={voting}
+                      onClick={() => setSelectedOption(index)}
                     >
                       {option}
                     </Button>
                   ) : (
-                    <div className="border rounded-lg p-4">
+                    <div className="border rounded-lg p-3">
                       <div className="flex justify-between items-center mb-2">
                         <span className="font-medium">{option}</span>
                         {showResults && (
-                          <span className="text-sm text-gray-600">
+                          <span className="text-sm text-muted-foreground">
                             {voteCount} votes ({percentage}%)
                           </span>
                         )}
                       </div>
                       {showResults && (
-                        <div className="w-full bg-gray-200 rounded-full h-2">
+                        <div className="w-full bg-muted rounded-full h-2.5">
                           <div
-                            className="bg-blue-600 h-2 rounded-full transition-all duration-300"
+                            className="bg-primary h-2.5 rounded-full transition-all duration-500 ease-out"
                             style={{ width: `${percentage}%` }}
                           />
                         </div>
@@ -198,20 +124,31 @@ export default function PollPage() {
             })}
           </div>
 
+          {canVote && (
+            <Button
+              className="w-full"
+              onClick={() => selectedOption !== null && handleVote(selectedOption)}
+              disabled={voting || selectedOption === null}
+            >
+              {voting ? "Voting..." : "Submit Vote"}
+            </Button>
+          )}
+
           {hasVoted && !isOwner && (
-            <div className="bg-green-100 border border-green-400 text-green-700 px-4 py-3 rounded">
+            <div className="bg-green-100/50 border border-green-200 text-green-700 dark:bg-green-900/50 dark:border-green-800 dark:text-green-300 px-4 py-3 rounded-md text-sm">
               Thank you for voting! Results are shown above.
             </div>
           )}
 
           {!poll.is_active && (
-            <div className="bg-yellow-100 border border-yellow-400 text-yellow-700 px-4 py-3 rounded">
+            <div className="bg-yellow-100/50 border border-yellow-200 text-yellow-700 dark:bg-yellow-900/50 dark:border-yellow-800 dark:text-yellow-300 px-4 py-3 rounded-md text-sm">
               This poll is no longer active.
             </div>
           )}
 
           <div className="flex gap-2 pt-4">
             <Button variant="outline" onClick={() => router.push("/polls")}>
+              <ArrowLeft className="w-4 h-4 mr-2" />
               Back to Polls
             </Button>
             {isOwner && (
@@ -219,6 +156,7 @@ export default function PollPage() {
                 variant="outline"
                 onClick={() => router.push(`/polls/${pollId}/share`)}
               >
+                <Share2 className="w-4 h-4 mr-2" />
                 Share Poll
               </Button>
             )}
@@ -226,9 +164,9 @@ export default function PollPage() {
         </CardContent>
       </Card>
 
-      {/* Results Chart - Show for owners or when poll has votes */}
-      {(isOwner || poll.total_votes > 0) && (
-        <div className="mt-6">
+      {(isOwner || (showResults && poll.total_votes > 0)) && (
+        <div className="mt-8">
+          <h3 className="text-xl font-bold mb-4">Poll Results</h3>
           <PollResultsChart poll={poll} />
         </div>
       )}

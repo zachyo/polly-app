@@ -1,26 +1,63 @@
 @import "tailwindcss";
 
-:root {
-  --background: #ffffff;
-  --foreground: #171717;
-}
+@theme {
+  --color-background: oklch(98.5% 0.01 290); /* A very light, slightly cool gray */
+  --color-foreground: oklch(20% 0.01 290);   /* A dark, slightly cool gray */
 
-@theme inline {
-  --color-background: var(--background);
-  --color-foreground: var(--foreground);
-  --font-sans: var(--font-geist-sans);
-  --font-mono: var(--font-geist-mono);
+  --color-primary: oklch(65% 0.2 290);       /* A vibrant, modern purple */
+  --color-primary-foreground: oklch(98.5% 0.01 290); /* The light background color */
+
+  --color-secondary: oklch(90% 0.05 290);    /* A light, muted purple */
+  --color-secondary-foreground: oklch(20% 0.01 290); /* The dark foreground color */
+
+  --color-accent: oklch(75% 0.25 145);       /* A bright, modern green for accents */
+  --color-accent-foreground: oklch(20% 0.01 290);    /* The dark foreground color */
+
+  --color-destructive: oklch(60% 0.25 25);   /* A modern, less jarring red */
+  --color-destructive-foreground: oklch(98.5% 0.01 290); /* The light background color */
+
+  --color-muted: oklch(95% 0.02 290);        /* A very light, muted gray */
+  --color-muted-foreground: oklch(45% 0.02 290); /* A medium-dark gray */
+
+  --color-border: oklch(90% 0.02 290);       /* A light gray for borders */
+  --color-input: oklch(90% 0.02 290);        /* A light gray for input backgrounds */
+  --color-ring: oklch(65% 0.2 290);          /* The primary color for focus rings */
+
+  --radius: 0.5rem;
 }
 
 @media (prefers-color-scheme: dark) {
-  :root {
-    --background: #0a0a0a;
-    --foreground: #ededed;
+  @theme {
+    --color-background: oklch(15% 0.02 290);  /* A dark, slightly cool gray */
+    --color-foreground: oklch(95% 0.02 290);  /* A very light, slightly cool gray */
+
+    --color-primary: oklch(70% 0.2 290);      /* A slightly brighter purple for dark mode */
+    --color-primary-foreground: oklch(15% 0.02 290); /* The dark background color */
+
+    --color-secondary: oklch(25% 0.03 290);   /* A darker, muted purple */
+    --color-secondary-foreground: oklch(95% 0.02 290); /* The light foreground color */
+
+    --color-accent: oklch(80% 0.25 145);      /* A brighter green for dark mode */
+    --color-accent-foreground: oklch(15% 0.02 290);   /* The dark background color */
+
+    --color-destructive: oklch(65% 0.25 25);  /* A brighter red for dark mode */
+    --color-destructive-foreground: oklch(15% 0.02 290); /* The dark background color */
+
+    --color-muted: oklch(20% 0.02 290);       /* A dark, muted gray */
+    --color-muted-foreground: oklch(70% 0.02 290); /* A medium-light gray */
+
+    --color-border: oklch(25% 0.02 290);      /* A dark gray for borders */
+    --color-input: oklch(25% 0.02 290);       /* A dark gray for input backgrounds */
+    --color-ring: oklch(70% 0.2 290);         /* The primary color for focus rings */
   }
 }
 
-body {
-  background: var(--background);
-  color: var(--foreground);
-  font-family: Arial, Helvetica, sans-serif;
+@layer base {
+  * {
+    @apply border-border;
+  }
+  body {
+    @apply bg-background text-foreground;
+    font-feature-settings: "rlig" 1, "calt" 1;
+  }
 }

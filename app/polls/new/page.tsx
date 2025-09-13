@@ -147,10 +147,10 @@ export default function NewPollPage() {
   }
 
   return (
-    <div className="flex items-center justify-center min-h-screen bg-gray-100 dark:bg-gray-900 p-4">
-      <Card className="w-full max-w-2xl">
+    <div className="w-full max-w-2xl mx-auto py-12">
+      <Card>
         <CardHeader>
-          <CardTitle>Create a New Poll</CardTitle>
+          <CardTitle className="text-2xl font-bold">Create a New Poll</CardTitle>
           <CardDescription>
             Fill in the details below to create your poll.
           </CardDescription>
@@ -160,7 +160,7 @@ export default function NewPollPage() {
           <form onSubmit={form.handleSubmit(onSubmit)}>
             <CardContent className="space-y-6">
               {error && (
-                <div className="bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded">
+                <div className="bg-destructive/10 text-destructive text-sm p-3 rounded-md">
                   {error}
                 </div>
               )}
@@ -170,12 +170,12 @@ export default function NewPollPage() {
                 name="title"
                 render={({ field }) => (
                   <FormItem>
-                    <FormLabel>Poll Title *</FormLabel>
+                    <FormLabel>Poll Title</FormLabel>
                     <FormControl>
-                      <Input placeholder="What's your favorite color?" {...field} />
+                      <Input placeholder="What's your favorite color?" {...field} className="bg-input" />
                     </FormControl>
                     <FormDescription>
-                      Enter a clear and engaging title for your poll (3-200 characters).
+                      A clear and engaging title for your poll.
                     </FormDescription>
                     <FormMessage />
                   </FormItem>
@@ -189,10 +189,10 @@ export default function NewPollPage() {
                   <FormItem>
                     <FormLabel>Description (optional)</FormLabel>
                     <FormControl>
-                      <Input placeholder="Add more context to your poll..." {...field} />
+                      <Input placeholder="Add more context to your poll..." {...field} className="bg-input" />
                     </FormControl>
                     <FormDescription>
-                      Provide additional context or instructions for your poll (max 500 characters).
+                      Provide additional context or instructions.
                     </FormDescription>
                     <FormMessage />
                   </FormItem>
@@ -200,9 +200,9 @@ export default function NewPollPage() {
               />
 
               <div className="space-y-4">
-                <FormLabel>Poll Options *</FormLabel>
+                <FormLabel>Poll Options</FormLabel>
                 <FormDescription>
-                  Add between {MIN_OPTIONS} and {MAX_OPTIONS} options for your poll.
+                  Add between {MIN_OPTIONS} and {MAX_OPTIONS} options.
                 </FormDescription>
                 
                 {fields.map((field, index) => (
@@ -214,7 +214,7 @@ export default function NewPollPage() {
                       <FormItem>
                         <div className="flex items-center gap-2">
                           <FormControl>
-                            <Input placeholder={`Option ${index + 1}`} {...field} />
+                            <Input placeholder={`Option ${index + 1}`} {...field} className="bg-input" />
                           </FormControl>
                           {canRemoveOption && (
                             <Button
