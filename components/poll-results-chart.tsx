@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useMemo } from "react";
 import {
   BarChart,
   Bar,
@@ -13,10 +13,11 @@ import {
   Pie,
   Cell,
   Legend,
+  TooltipProps,
 } from "recharts";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import type { PollWithResults } from "@/lib/database";
+import type { PollWithResults } from "@/lib/types";
 
 interface PollResultsChartProps {
   poll: PollWithResults;
@@ -28,53 +29,56 @@ const COLORS = [
   '#8DD1E1', '#D084D0'
 ];
 
+// Define a type for our chart data
+type ChartData = {
+  name: string;
+  fullName: string;
+  votes: number;
+  percentage: number;
+};
+
+const CustomTooltip: React.FC<TooltipProps<number, string>> = ({ active, payload }) => {
+  if (active && payload && payload.length) {
+    const data = payload[0].payload as ChartData;
+    return (
+      <div className="bg-white p-3 border rounded shadow-lg">
+        <p className="font-medium">{data.fullName}</p>
+        <p className="text-blue-600">
+          Votes: {data.votes} ({data.percentage}%)
+        </p>
+      </div>
+    );
+  }
+  return null;
+};
+
 export function PollResultsChart({ poll }: PollResultsChartProps) {
   const [chartType, setChartType] = useState<'bar' | 'pie'>('bar');
 
-  // Prepare data for charts
-  const chartData = poll.options.map((option, index) => {
-    const votes = poll.vote_counts[index.toString()] || 0;
-    const percentage = poll.total_votes > 0 
-      ? Math.round((votes / poll.total_votes) * 100) 
-      : 0;
-    
-    return {
-      name: option.length > 20 ? `${option.substring(0, 20)}...` : option,
-      fullName: option,
-      votes,
-      percentage,
-    };
-  });
+  const chartData = useMemo<ChartData[]>(() => {
+    return poll.options.map((option, index) => {
+      const votes = poll.vote_counts[index.toString()] || 0;
+      const percentage = poll.total_votes > 0 
+        ? Math.round((votes / poll.total_votes) * 100) 
+        : 0;
+      
+      return {
+        name: option.length > 20 ? `${option.substring(0, 20)}...` : option,
+        fullName: option,
+        votes,
+        percentage,
+      };
+    });
+  }, [poll.options, poll.vote_counts, poll.total_votes]);
 
-  const CustomTooltip = ({ active, payload, label }: any) => {
-    if (active && payload && payload.length) {
-      const data = payload[0].payload;
-      return (
-        <div className="bg-white p-3 border rounded shadow-lg">
-          <p className="font-medium">{data.fullName}</p>
-          <p className="text-blue-600">
-            Votes: {data.votes} ({data.percentage}%)
-          </p>
-        </div>
-      );
-    }
-    return null;
-  };
+  const mostPopularOption = useMemo(() => {
+    if (chartData.length === 0) return 'N/A';
+    return chartData.reduce((max, item) => item.votes > max.votes ? item : max, chartData[0]).name;
+  }, [chartData]);
 
-  const CustomPieTooltip = ({ active, payload }: any) => {
-    if (active && payload && payload.length) {
-      const data = payload[0].payload;
-      return (
-        <div className="bg-white p-3 border rounded shadow-lg">
-          <p className="font-medium">{data.fullName}</p>
-          <p className="text-blue-600">
-            Votes: {data.votes} ({data.percentage}%)
-          </p>
-        </div>
-      );
-    }
-    return null;
-  };
+  const sortedChartData = useMemo(() => {
+    return [...chartData].sort((a, b) => b.votes - a.votes);
+  }, [chartData]);
 
   if (poll.total_votes === 0) {
     return (
@@ -148,7 +152,10 @@ export function PollResultsChart({ poll }: PollResultsChartProps) {
                   cx="50%"
                   cy="50%"
                   labelLine={false}
-                  label={({ name, percentage }) => `${name}: ${percentage}%`}
+                  label={(data: any) => {
+                    const chartData = data as ChartData;
+                    return `${chartData.name}: ${chartData.percentage}%`;
+                  }}
                   outerRadius={80}
                   fill="#8884d8"
                   dataKey="votes"
@@ -157,7 +164,7 @@ export function PollResultsChart({ poll }: PollResultsChartProps) {
                     <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
                   ))}
                 </Pie>
-                <Tooltip content={<CustomPieTooltip />} />
+                <Tooltip content={<CustomTooltip />} />
                 <Legend />
               </PieChart>
             </ResponsiveContainer>
@@ -176,7 +183,7 @@ export function PollResultsChart({ poll }: PollResultsChartProps) {
           </div>
           <div className="bg-gray-50 rounded-lg p-4 text-center">
             <div className="text-2xl font-bold text-purple-600">
-              {chartData.reduce((max, item) => item.votes > max.votes ? item : max, chartData[0])?.name || 'N/A'}
+              {mostPopularOption}
             </div>
             <div className="text-sm text-gray-600">Most Popular</div>
           </div>
@@ -196,9 +203,7 @@ export function PollResultsChart({ poll }: PollResultsChartProps) {
                 </tr>
               </thead>
               <tbody>
-                {chartData
-                  .sort((a, b) => b.votes - a.votes)
-                  .map((item, index) => (
+                {sortedChartData.map((item, index) => (
                     <tr key={index} className="hover:bg-gray-50">
                       <td className="border border-gray-300 px-4 py-2 font-medium">
                         {item.fullName}

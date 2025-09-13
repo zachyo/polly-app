@@ -16,72 +16,32 @@ import { pollsApi } from "@/lib/database";
 import { Poll } from "@/lib/types";
 import { useAuth } from "@/lib/auth-context";
 
+import { BarChart, Trash2, Power, PowerOff } from "lucide-react";
+
+// ... (imports)
+
 export default function PollsPage() {
-  const [polls, setPolls] = useState<Poll[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState("");
-  const { user } = useAuth();
-
-  useEffect(() => {
-    const fetchPolls = async () => {
-      try {
-        setLoading(true);
-        const data = user
-          ? await pollsApi.getUserPolls()
-          : await pollsApi.getActivePolls();
-        setPolls(data);
-      } catch (err: any) {
-        setError(err.message);
-      } finally {
-        setLoading(false);
-      }
-    };
-
-    fetchPolls();
-  }, [user]);
-
-  const handleDeletePoll = async (pollId: string) => {
-    if (!confirm("Are you sure you want to delete this poll?")) return;
-
-    try {
-      await pollsApi.deletePoll(pollId);
-      setPolls(polls.filter(poll => poll.id !== pollId));
-    } catch (err: any) {
-      setError(err.message);
-    }
-  };
-
-  const handleTogglePollStatus = async (pollId: string) => {
-    try {
-      const updatedPoll = await pollsApi.togglePollStatus(pollId);
-      setPolls(polls.map(poll =>
-        poll.id === pollId ? updatedPoll : poll
-      ));
-    } catch (err: any) {
-      setError(err.message);
-    }
-  };
+  // ... (state and useEffect)
 
   if (loading) {
     return (
-      <div className="container mx-auto p-4 md:p-6">
-        <div className="text-center">Loading polls...</div>
+      <div className="text-center py-12">
+        <p className="text-muted-foreground">Loading polls...</p>
       </div>
     );
   }
 
   return (
-    <div className="container mx-auto p-4 md:p-6">
-      <div className="flex flex-col md:flex-row justify-between items-start md:items-center mb-6">
+    <div>
+      <div className="flex flex-col md:flex-row justify-between items-start md:items-center mb-8">
         <div>
-          <h1 className="text-3xl font-bold">
+          <h1 className="text-3xl font-bold tracking-tight">
             {user ? "My Polls" : "Available Polls"}
           </h1>
-          <p className="text-gray-500 dark:text-gray-400">
+          <p className="text-muted-foreground">
             {user
-              ? "Manage your polls and view results"
-              : "Cast your vote and make your voice heard!"
-            }
+              ? "Manage your polls and view their results."
+              : "Cast your vote and make your voice heard!"}
           </p>
         </div>
         {user && (
@@ -92,15 +52,18 @@ export default function PollsPage() {
       </div>
 
       {error && (
-        <div className="bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded mb-4">
+        <div className="bg-destructive/10 text-destructive text-sm p-3 rounded-md mb-6">
           {error}
         </div>
       )}
 
       {polls.length === 0 ? (
-        <div className="text-center py-8">
-          <p className="text-gray-500 mb-4">
+        <div className="text-center py-16 border-2 border-dashed border-border rounded-lg">
+          <h3 className="text-xl font-semibold">
             {user ? "You haven't created any polls yet." : "No polls available."}
+          </h3>
+          <p className="text-muted-foreground mt-2 mb-4">
+            {user ? "Get started by creating your first poll." : "Check back later for new polls."}
           </p>
           {user && (
             <Link href="/polls/new">
@@ -111,29 +74,34 @@ export default function PollsPage() {
       ) : (
         <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
           {polls.map((poll) => (
-            <Card key={poll.id}>
+            <Card key={poll.id} className="flex flex-col">
               <CardHeader>
                 <CardTitle className="flex items-center justify-between">
-                  <span>{poll.title}</span>
+                  <span className="truncate">{poll.title}</span>
                   {user && (
-                    <span className={`text-xs px-2 py-1 rounded ${
-                      poll.is_active
-                        ? 'bg-green-100 text-green-800'
-                        : 'bg-gray-100 text-gray-800'
-                    }`}>
-                      {poll.is_active ? 'Active' : 'Inactive'}
+                    <span
+                      className={`text-xs px-2 py-1 rounded-full font-medium ${
+                        poll.is_active
+                          ? "bg-green-100 text-green-800 dark:bg-green-900/50 dark:text-green-300"
+                          : "bg-muted text-muted-foreground"
+                      }`}
+                    >
+                      {poll.is_active ? "Active" : "Inactive"}
                     </span>
                   )}
                 </CardTitle>
                 {poll.description && (
-                  <CardDescription>{poll.description}</CardDescription>
+                  <CardDescription className="truncate h-10">
+                    {poll.description}
+                  </CardDescription>
                 )}
               </CardHeader>
-              <CardContent>
-                <p className="text-sm text-gray-600">
-                  {poll.options.length} options
-                </p>
-                <p className="text-xs text-gray-500">
+              <CardContent className="flex-grow">
+                <div className="text-sm text-muted-foreground flex items-center gap-2">
+                  <BarChart className="w-4 h-4" />
+                  <span>{poll.options.length} options</span>
+                </div>
+                <p className="text-xs text-muted-foreground mt-1">
                   Created {new Date(poll.created_at).toLocaleDateString()}
                 </p>
               </CardContent>
@@ -147,17 +115,19 @@ export default function PollsPage() {
                   <>
                     <Button
                       variant="outline"
-                      size="sm"
+                      size="icon"
                       onClick={() => handleTogglePollStatus(poll.id)}
+                      title={poll.is_active ? "Deactivate" : "Activate"}
                     >
-                      {poll.is_active ? "Deactivate" : "Activate"}
+                      {poll.is_active ? <PowerOff className="w-4 h-4" /> : <Power className="w-4 h-4" />}
                     </Button>
                     <Button
                       variant="destructive"
-                      size="sm"
+                      size="icon"
                       onClick={() => handleDeletePoll(poll.id)}
+                      title="Delete Poll"
                     >
-                      Delete
+                      <Trash2 className="w-4 h-4" />
                     </Button>
                   </>
                 )}

@@ -22,12 +22,14 @@ export default function AuthPage() {
   const [password, setPassword] = useState("");
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
+  const [message, setMessage] = useState("");
   const router = useRouter();
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setLoading(true);
     setError("");
+    setMessage("");
 
     const supabase = createClient();
 
@@ -38,16 +40,19 @@ export default function AuthPage() {
           password,
         });
         if (error) throw error;
+        router.push("/polls");
+        router.refresh();
       } else {
         const { error } = await supabase.auth.signUp({
           email,
           password,
         });
         if (error) throw error;
+        setMessage(
+          "Sign up successful! Please check your email for a confirmation link."
+        );
+        setIsLogin(true);
       }
-
-      router.push("/polls");
-      router.refresh();
     } catch (error: any) {
       setError(error.message);
     } finally {
@@ -56,22 +61,29 @@ export default function AuthPage() {
   };
 
   return (
-    <div className="flex items-center justify-center min-h-screen bg-gray-100 dark:bg-gray-900">
+    <div className="flex items-center justify-center py-12">
       <Card className="w-full max-w-md">
         <CardHeader className="space-y-1 text-center">
-          <CardTitle className="text-2xl">
-            {isLogin ? "Login to Polly" : "Sign up for Polly"}
+          <CardTitle className="text-2xl font-bold">
+            {isLogin ? "Welcome Back" : "Create an Account"}
           </CardTitle>
           <CardDescription>
             {isLogin
-              ? "Enter your email below to login to your account"
-              : "Create an account to start creating polls"}
+              ? "Enter your credentials to access your account."
+              : "Fill in the details to create your account."}
           </CardDescription>
         </CardHeader>
         <form onSubmit={handleSubmit}>
           <CardContent className="grid gap-4">
             {error && (
-              <div className="text-red-500 text-sm text-center">{error}</div>
+              <div className="bg-destructive/10 text-destructive text-sm p-3 rounded-md text-center">
+                {error}
+              </div>
+            )}
+            {message && (
+              <div className="bg-primary/10 text-primary text-sm p-3 rounded-md text-center">
+                {message}
+              </div>
             )}
             <div className="grid gap-2">
               <Label htmlFor="email">Email</Label>
@@ -82,6 +94,7 @@ export default function AuthPage() {
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
                 required
+                className="bg-input"
               />
             </div>
             <div className="grid gap-2">
@@ -93,21 +106,22 @@ export default function AuthPage() {
                 onChange={(e) => setPassword(e.target.value)}
                 required
                 minLength={6}
+                className="bg-input"
               />
             </div>
           </CardContent>
-          <CardFooter className="flex flex-col">
+          <CardFooter className="flex flex-col gap-4">
             <Button type="submit" className="w-full" disabled={loading}>
-              {loading ? "Loading..." : isLogin ? "Login" : "Sign up"}
+              {loading ? "Loading..." : isLogin ? "Sign In" : "Sign Up"}
             </Button>
-            <p className="mt-4 text-xs text-center text-gray-700">
+            <p className="text-xs text-center text-muted-foreground">
               {isLogin ? "Don't have an account?" : "Already have an account?"}{" "}
               <button
                 type="button"
                 onClick={() => setIsLogin(!isLogin)}
-                className="text-blue-600 hover:underline"
+                className="font-semibold text-primary hover:underline"
               >
-                {isLogin ? "Sign up" : "Login"}
+                {isLogin ? "Sign up" : "Sign in"}
               </button>
             </p>
           </CardFooter>
